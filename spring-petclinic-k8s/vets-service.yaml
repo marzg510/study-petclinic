@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vets-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vets-service
+  template:
+    metadata:
+      labels:
+        app: vets-service
+    spec:
+      containers:
+        - name: vets-service
+          image: springcommunity/spring-petclinic-vets-service
+          ports:
+            - containerPort: 8083
+          resources:
+            limits:
+              memory: 512Mi
+          env:
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+      initContainers:
+        - name: wait-for-config-server
+          image: busybox
+          command: ['sh', '-c', 'until nc -z config-server 8888; do echo waiting for config-server; sleep 5; done;']
+        - name: wait-for-discovery-server
+          image: busybox
+          command: ['sh', '-c', 'until nc -z discovery-server 8761; do echo waiting for discovery-server; sleep 5; done;']
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vets-service
+spec:
+  selector:
+    app: vets-service
+  ports:
+    - port: 8083
+      targetPort: 8083
+
