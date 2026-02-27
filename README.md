@@ -57,14 +57,10 @@ docker compose up
 
 #### docker
 
-docker-compose.yaml
-```yaml
-```
+docker-compose.yaml更新
 
 ```sh
-# docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:9.5 -d
-docker run -e MYSQL_ROOT_PASSWORD=petclinic -e MYSQL_DATABASE=petclinic -p 3306:3306 mysql:8.4.5
-docker compose up
+docker compose up -d
 ```
 
 ### with docker compose
@@ -143,6 +139,7 @@ k apply -f grafana-server.yaml -n petclinic
 k apply -f prometheus-server.yaml -n petclinic
 k apply -f api-gateway.yaml -n petclinic
 k apply -f tracing-server.yaml -n petclinic
+k apply -f mysql.yaml -n petclinic
 k apply -f customers-service.yaml -n petclinic
 k apply -f vets-service.yaml -n petclinic
 k apply -f visits-service.yaml -n petclinic
@@ -163,3 +160,30 @@ servers
 
 http://localhost:9091
 http://localhost:9411
+
+
+### minikube with MySQL
+
+ConfigMap
+```sh
+kubectl -n petclinic create configmap petclinic-config --from-file=config/
+```
+
+Secret
+```sh
+k -n petclinic create secret generic mysql-secret --from-env-file=config/mysql.env
+```
+
+
+#### Add to Prometheus
+
+```
+# 1. minikubeのDockerデーモンに接続
+eval $(minikube docker-env)
+
+# 2. イメージをリビルド
+docker build -t spring-petclinic-microservices-prometheus-server ../spring-petclinic-microservices-mysql/docker/prometheus/
+
+# 3. Podを再起動（イメージを再読み込み）
+kubectl rollout restart deployment prometheus-server -n petclinic
+```
