@@ -187,3 +187,10 @@ docker build -t spring-petclinic-microservices-prometheus-server ../spring-petcl
 # 3. Podを再起動（イメージを再読み込み）
 kubectl rollout restart deployment prometheus-server -n petclinic
 ```
+
+## Pet Clinic Microservice on ECS
+
+主な変更点：
+- サービスディスカバリ eureka -> AWSではECS
+- Spring API Gateway -> ※AWSではAPI Gateway
+- config-serverの参照先リポジトリ 公式 -> ローカルリポジトリ
