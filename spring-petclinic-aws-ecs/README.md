@@ -30,6 +30,15 @@ tfenv install
 terraform --version
 ```
 
+### Hello World
+
+make main.tf
+
+```sh
+terraform init
+terraform apply
+```
+
 ## Cluster
 
 ```sh
