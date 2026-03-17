@@ -2,18 +2,48 @@
 
 ## AWS CLI
 
-docker run --rm -it public.ecr.aws/aws-cli/aws-cli command
-docker run --rm -it public.ecr.aws/aws-cli/aws-cli help
-docker run --rm -it -v ~/.aws:/root/.aws public.ecr.aws/aws-cli/aws-cli configure get region
-docker run --rm -it -v ~/.aws:/root/.aws public.ecr.aws/aws-cli/aws-cli s3 ls
+Config
 
-alias aws='docker run --rm -it -e AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} -v ~/.aws:/root/.aws -v $(pwd):/aws -w /aws public.ecr.aws/aws-cli/aws-cli'
+```sh
 aws configure
 aws configure get region
 aws sts get-caller-identity
 aws s3 ls
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+```
 
+## Terraform
+
+### [tfenv](https://github.com/tfutils/tfenv) 
+
+```sh
+git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv
+echo 'export PATH="$HOME/.tfenv/bin:$PATH"' >> ~/.bash_profile
+tfenv --version
+tfenv use latest
+```
+
+### Terraform Install
+
+```sh
+tfenv install
+terraform --version
+```
+
+## Cluster
+
+```sh
+aws ecs create-cluster --cluster-name petclinic --tag key=project,value=petclinic --capacity-providers FARGATE
+# aws ecs delete-cluster --cluster petclinic
+```
+
+## Service Discovery(Cloud Map)
+
+```sh
+aws servicediscovery create-private-dns-namespace \
+    --name petclinic.local \
+    --vpc vpc-2636c543
+```
 
 ## config-server
 
@@ -35,18 +65,41 @@ docker push ${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/springcommuni
 
 ```
 
-### Create Cluster
-
-```sh
-aws ecs create-cluster --cluster-name config-server --tag key=project,value=petclinic --capacity-providers FARGATE
-aws ecs delete-cluster --cluster config-server
-```
-
 ### Create Task Definition
 
-```
+```sh
 aws ecs register-task-definition --cli-input-yaml file://config-server-task-definition.yaml
-aws ecs register-task-definition --cli-input-yaml task-definition.yaml
+```
 
+```sh
+aws ecs register-task-definition \
+    --family spring-petclinic-config-server \
+    --network-mode awsvpc \
+    --requires-compatibilities FARGATE \
+    --cpu "256" \
+    --memory "512" \
+    --execution-role-arn "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole" \
+    --container-definitions '[
+        {
+            "name": "spring-petclinic-config-server",
+            "image": "springcommunity/spring-petclinic-config-server:latest",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8888,
+                    "protocol": "tcp"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/spring-petclinic-config-server",
+                    "awslogs-region": "ap-northeast-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ]'
+ 
 ```
 
