@@ -1,0 +1,20 @@
+family: spring-petclinic-config-server
+networkMode: awsvpc
+requiresCompatibilities:
+  - FARGATE
+cpu: "256"
+memory: "512"
+executionRoleArn: arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole
+containerDefinitions:
+  - name: spring-petclinic-config-server
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/springcommunity/spring-petclinic-config-server:latest
+    portMappings:
+      - containerPort: 8888
+        protocol: tcp
+    essential: true
+    logConfiguration:
+      logDriver: awslogs
+      options:
+        awslogs-group: /ecs/spring-petclinic-config-server
+        awslogs-region: ap-northeast-1
+        awslogs-stream-prefix: ecs
