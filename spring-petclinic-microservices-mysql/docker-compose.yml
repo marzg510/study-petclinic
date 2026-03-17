@@ -49,8 +49,8 @@ services:
       - MYSQL_ROOT_PASSWORD=root
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-upetclinic", "-ppetclinic"]
-      interval: 5s
-      timeout: 5s
+      interval: 10s
+      timeout: 10s
       retries: 20
     ports:
       - 3306:3306
@@ -72,7 +72,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=mysql
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
-      # - SERVER_PORT=8081
     ports:
     - 8081:8081
 
@@ -93,7 +92,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=mysql
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
-      # - SERVER_PORT=8082
     ports:
      - 8082:8082
 
@@ -114,7 +112,6 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=mysql
       - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
-      # - SERVER_PORT=8083
     ports:
      - 8083:8083
 
