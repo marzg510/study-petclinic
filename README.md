@@ -13,6 +13,7 @@ sudo apt install openjdk-17-jre-headless
 
 https://github.com/spring-projects/spring-petclinic
 
+
 ### Run Locally
 
 ```sh
@@ -37,6 +38,12 @@ docker run -e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic -e MYSQL_ROOT_PAS
 
 https://github.com/spring-petclinic/spring-petclinic-microservices
 
+```sh
+git clone https://github.com/spring-petclinic/spring-petclinic-microservices
+cd spring-petclinic-microservices
+docker compose up
+```
+
 - Discovery Server - http://localhost:8761
 - Config Server - http://localhost:8888
 - AngularJS frontend (API Gateway) - http://localhost:8080
@@ -46,14 +53,7 @@ https://github.com/spring-petclinic/spring-petclinic-microservices
 - Grafana Dashboards - http://localhost:3030
 - Prometheus - http://localhost:9091
 
-### 最終的には
-
-```sh
-git clone https://github.com/spring-petclinic/spring-petclinic-microservices.git
-docker compose up
-```
-
-### with MySQL
+### with MySQL on docker compose
 
 #### docker
 
@@ -63,42 +63,6 @@ docker-compose.yaml更新
 docker compose up -d
 ```
 
-### with docker compose
-
-```sh
-bash ./mvnw clean install -P buildDocker
-failed to fetch metadata: fork/exec /usr/local/lib/docker/cli-plugins/docker-buildx: no such file or directory
-
-DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
-            Install the buildx component to build images with BuildKit:
-            https://docs.docker.com/go/buildx/
-
-unknown flag: --load
-
-Usage:  docker build [OPTIONS] PATH | URL | -
-
-Run 'docker build --help' for more information
-[ERROR] Command execution failed.
-org.apache.commons.exec.ExecuteException: Process exited with an error: 125 (Exit value: 125)
-    at org.apache.commons.exec.DefaultExecutor.executeInternal (DefaultExecutor.java:404)
-    at org.apache.commons.exec.DefaultExecutor.execute (DefaultExecutor.java:166)
-    at org.codehaus.mojo.exec.ExecMojo.executeCommandLine (ExecMojo.java:881)
-    at org.codehaus.mojo.exec.ExecMojo.executeCommandLine (ExecMojo.java:841)
-    at org.codehaus.mojo.exec.ExecMojo.execute (ExecMojo.java:447)
-```
-
-### run_all
-
-```sh
-./scripts/run_all.sh
-```
-
-### Gemini
-
-```
-./mvnw clean install -DskipTests
-docker-compose up
-```
 ### Java
 
 ```sh
@@ -124,11 +88,19 @@ spring-petclinic-genai-service
 ../mvnw spring-boot:run
 ```
 
-### minikube
+### k8s (minikube/kind)
 
+minikube
 ```sh
 minikube image load spring-petclinic-microservices-grafana-server
 minikube image load spring-petclinic-microservices-prometheus-server
+```
+
+kind
+```sh
+kind create cluster
+kind load docker-image spring-petclinic-microservices-grafana-server
+kind load docker-image spring-petclinic-microservices-prometheus-server
 ```
 
 ```sh
@@ -139,22 +111,22 @@ k apply -f grafana-server.yaml -n petclinic
 k apply -f prometheus-server.yaml -n petclinic
 k apply -f api-gateway.yaml -n petclinic
 k apply -f tracing-server.yaml -n petclinic
-k apply -f mysql.yaml -n petclinic
 k apply -f customers-service.yaml -n petclinic
 k apply -f vets-service.yaml -n petclinic
 k apply -f visits-service.yaml -n petclinic
 
 ```sh
 # kubectl port-forward -n petclinic svc/config-server 8888:8888 &
-kubectl port-forward -n petclinic svc/discovery-server 8761:8761 &
-kubectl port-forward -n petclinic svc/api-gateway 8080:8080 &
-kubectl port-forward -n petclinic svc/grafana-server 3030:3030 &
-kubectl port-forward -n petclinic svc/prometheus-server 9091:9090 &
-kubectl port-forward -n petclinic svc/tracing-server 9411:9411 &
+kubectl port-forward -n petclinic --address 0.0.0.0 svc/discovery-server 8761:8761 &
+kubectl port-forward -n petclinic --address 0.0.0.0 svc/api-gateway 8080:8080 &
+kubectl port-forward -n petclinic --address 0.0.0.0 svc/grafana-server 3030:3030 &
+kubectl port-forward -n petclinic --address 0.0.0.0 svc/prometheus-server 9091:9090 &
+kubectl port-forward -n petclinic --address 0.0.0.0 svc/tracing-server 9411:9411 &
 jobs
 fg
 fg %1
 ```
+
 
 servers
 
@@ -174,10 +146,15 @@ Secret
 k -n petclinic create secret generic mysql-secret --from-env-file=config/mysql.env
 ```
 
+```sh
+k apply -f mysql.yaml -n petclinic
+```
 
 #### Add to Prometheus
 
-```
+##### Minikubeの場合
+
+```sh
 # 1. minikubeのDockerデーモンに接続
 eval $(minikube docker-env)
 
@@ -185,6 +162,14 @@ eval $(minikube docker-env)
 docker build -t spring-petclinic-microservices-prometheus-server ../spring-petclinic-microservices-mysql/docker/prometheus/
 
 # 3. Podを再起動（イメージを再読み込み）
+kubectl rollout restart deployment prometheus-server -n petclinic
+```
+
+##### Kindの場合
+
+```sh
+docker build -t spring-petclinic-microservices-prometheus-server ../spring-petclinic-microservices-mysql/docker/prometheus/
+kind load docker-image spring-petclinic-microservices-prometheus-server
 kubectl rollout restart deployment prometheus-server -n petclinic
 ```
 
@@ -198,7 +183,7 @@ kubectl rollout restart deployment prometheus-server -n petclinic
 
 aws ecs execute-command \
   --cluster config-server \
-  --task arn:aws:ecs:ap-northeast-1:246262167857:task/config-server/fdc0eb00716d4de1a2f19187651aa888 \
+  --task arn:aws:ecs:ap-northeast-1:${AWS_ACCOUNT_ID}$:task/config-server/fdc0eb00716d4de1a2f19187651aa888 \
   --container config-server \
   --command "/bin/sh" \
   --interactive
