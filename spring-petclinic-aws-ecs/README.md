@@ -112,3 +112,59 @@ aws ecs register-task-definition \
  
 ```
 
+#### Terraform
+
+既存リソースのインポート
+```
+terraform import aws_ecs_cluster.main petclinic
+terraform apply
+```
+
+削除
+```
+terraform destroy
+```
+
+タスクのパブリックIP取得
+```sh
+TASK_ARN=$(aws ecs list-tasks --cluster nginx-test --service-name nginx --query 'taskArns[0]' --output text)
+
+ENI_ID=$(aws ecs describe-tasks --cluster nginx-test --tasks $TASK_ARN \
+  --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+  --output text)
+
+aws ec2 describe-network-interfaces \
+  --network-interface-ids $ENI_ID \
+  --query 'NetworkInterfaces[0].Association.PublicIp' \
+  --output text
+```
+
+
+## discovery-server
+
+ECS でのサービス間通信には AWS Cloud Map（ECS Service Discovery）を使います
+
+petclinic.tfにサービスディスカバリの設定を追加する
+
+## API Gateway
+
+ALBを使うことにする（Claude曰く、API GatewayはVPCリンクが必要になる）
+alb.tf
+
+## Grafana, Prometeus
+
+今回はCloudWatch
+tfにCloudWatch Conteiner Insightsの設定を追加する
+
+ほかの選択としてはAMG,AMPがある
+Amazon Maneged Service for Prometheus(AMP)
+Amazon Managed Grafana(AMG)
+
+ECSで起動する手もあるが、動的IPへの追随が難しい
+
+k apply -f grafana-server.yaml -n petclinic
+k apply -f prometheus-server.yaml -n petclinic
+k apply -f tracing-server.yaml -n petclinic
+k apply -f customers-service.yaml -n petclinic
+k apply -f vets-service.yaml -n petclinic
+k apply -f visits-service.yaml -n petclinic
