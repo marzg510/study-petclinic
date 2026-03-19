@@ -1,0 +1,9 @@
+services:
+  nginx:
+    image: public.ecr.aws/nginx/nginx:latest
+    ports:
+      - "8080:80"
+  nginx2:
+    image: public.ecr.aws/nginx/nginx:latest
+    ports:
+      - "8081:80"
