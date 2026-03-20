@@ -32,6 +32,7 @@ resource "aws_ecs_task_definition" "api_gateway" {
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
+    local.otel_sidecar,
     {
       name      = "spring-petclinic-api-gateway"
       image     = "springcommunity/spring-petclinic-api-gateway:latest"

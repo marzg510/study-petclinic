@@ -223,8 +223,26 @@ aws ecs execute-command --cluster petclinic \
 
 ## Tracing Server
 
-サービスが動き出してからにする
-後回し
+otel.tf
+X-Rayで表示する
+
+OTEL Collectorが動作しているか確認
+```sh
+aws logs get-log-events \
+  --log-group-name /ecs/aws-otel-collector \
+  --log-stream-name $(aws logs describe-log-streams \
+    --log-group-name /ecs/aws-otel-collector \
+    --order-by LastEventTime --descending \
+    --query "logStreams[0].logStreamName" --output text) \
+  --query "events[*].message" --output text
+```
+
+トレース表示
+```sh
+$ aws xray get-trace-summaries   --start-time $(date -d '5 minutes ago' +%s)   --end-time $(date +%s)   --query "TraceSummaries[*].{Id:Id,Service:EntryPoint.Name}"   --output table
+```
+
+petclinicはzipkin形式で出力しているのでそれをOTEL Collectorが読めるようにしてあげる必要があった。
 
 ## Scale out api-gateway
 

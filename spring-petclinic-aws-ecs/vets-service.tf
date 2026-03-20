@@ -32,6 +32,7 @@ resource "aws_ecs_task_definition" "vets_service" {
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
+    local.otel_sidecar,
     {
       name      = "spring-petclinic-vets-service"
       image     = "springcommunity/spring-petclinic-vets-service:latest"
