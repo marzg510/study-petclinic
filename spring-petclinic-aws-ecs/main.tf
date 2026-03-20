@@ -73,6 +73,7 @@ resource "aws_iam_role_policy" "ecs_task_ssm" {
   })
 }
 
+
 output "cluster_name" {
   value = aws_ecs_cluster.main.name
 }

@@ -39,6 +39,20 @@ resource "aws_ecs_task_definition" "config_server" {
       portMappings = [
         { name = "config-server", containerPort = 8888, protocol = "tcp" }
       ]
+      environment = [
+        {
+          name  = "SPRING_CLOUD_CONFIG_SERVER_GIT_URI"
+          value = "https://github.com/marzg510/study-petclinic"
+        },
+        {
+          name  = "SPRING_CLOUD_CONFIG_SERVER_GIT_SEARCH_PATHS"
+          value = "spring-petclinic-aws-ecs/config"
+        },
+        {
+          name  = "SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL"
+          value = "main"
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {

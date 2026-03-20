@@ -1,26 +1,12 @@
-resource "aws_service_discovery_service" "customers_service" {
-  name = "customers-service"
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.petclinic.id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-  }
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-}
-
 resource "aws_security_group" "customers_service" {
   name   = "customers-service-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
-    from_port       = 8081
-    to_port         = 8081
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -43,6 +29,7 @@ resource "aws_ecs_task_definition" "customers_service" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
@@ -50,40 +37,16 @@ resource "aws_ecs_task_definition" "customers_service" {
       image     = "springcommunity/spring-petclinic-customers-service:latest"
       essential = true
       portMappings = [
-        { containerPort = 8081, protocol = "tcp" }
+        { name = "customers-service", containerPort = 8081, protocol = "tcp" }
       ]
       environment = [
         {
-          name  = "SPRING_CONFIG_IMPORT"
-          value = "configserver:http://config-server.petclinic.local:8888"
-        },
-        {
-          name  = "SPRING_CLOUD_CONFIG_URI"
-          value = "http://config-server.petclinic.local:8888"
-        },
-        {
           name  = "SPRING_PROFILES_ACTIVE"
-          value = "ecs"
+          value = "docker"
         },
         {
           name  = "SERVER_PORT"
           value = "8081"
-        },
-        {
-          name  = "EUREKA_CLIENT_ENABLED"
-          value = "false"
-        },
-        {
-          name  = "EUREKA_CLIENT_REGISTER_WITH_EUREKA"
-          value = "false"
-        },
-        {
-          name  = "EUREKA_CLIENT_FETCH_REGISTRY"
-          value = "false"
-        },
-        {
-          name  = "SPRING_CLOUD_DISCOVERY_ENABLED"
-          value = "false"
         }
       ]
       logConfiguration = {
@@ -103,7 +66,8 @@ resource "aws_ecs_service" "customers_service" {
   cluster         = aws_ecs_cluster.main.arn
   task_definition = aws_ecs_task_definition.customers_service.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+  launch_type            = "FARGATE"
+  enable_execute_command = true
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
@@ -111,15 +75,17 @@ resource "aws_ecs_service" "customers_service" {
     assign_public_ip = true
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.customers_service.arn
-  }
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_http_namespace.petclinic.arn
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.customers_service.arn
-    container_name   = "spring-petclinic-customers-service"
-    container_port   = 8081
+    service {
+      port_name      = "customers-service"
+      discovery_name = "customers-service"
+      client_alias {
+        port     = 8081
+        dns_name = "customers-service"
+      }
+    }
   }
-
-  depends_on = [aws_lb_listener.http]
 }

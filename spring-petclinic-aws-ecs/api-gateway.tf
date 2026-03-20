@@ -42,7 +42,7 @@ resource "aws_ecs_task_definition" "api_gateway" {
       environment = [
         {
           name  = "SPRING_PROFILES_ACTIVE"
-          value = "ecs"
+          value = "docker"
         }
       ]
       logConfiguration = {

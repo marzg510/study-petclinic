@@ -53,6 +53,16 @@ aws ecs execute-command --cluster petclinic \
 
 ```
 
+configディレクトリにconfigファイルを配置し、gitリポジトリから参照させるように設定。
+設定確認
+spring.cloud.discovery.client.simple.instances が含まれていれば成功です。
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name config-server --query "taskArns[0]" --output text) \
+  --container spring-petclinic-config-server \
+  --interactive --command "/usr/bin/curl http://localhost:8888/api-gateway/docker"
+```
+
 ## api-gateway
 
 初期ホームの画面を持っているので起動する必要がある
@@ -68,10 +78,75 @@ aws ecs execute-command --cluster petclinic \
   --interactive --command "/usr/bin/curl http://config-server:8888"
 
 ```
-※AWS Consoleから、サービスー＞タスクでコンテナへ辿り　Cloud Shellから接続でもOK
+※AWS Consoleから、サービスー＞タスクでコンテナへ辿り　Cloud Shellから接続でもできるが、コピペやカーソルキーでのコマンド履歴呼び出しがうまく効かないのでメインで使うのはやめた方がいい
 
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name api-gateway --query "taskArns[0]" --output text) \
+  --container spring-petclinic-api-gateway  \
+  --interactive --command "/bin/bash"
+
+```
+
+
+強制デプロイ
+```sh
+aws ecs update-service --cluster petclinic --service api-gateway --force-new-deployment
+```
 
 ## customers-service
+
+customers-service.tf
+http://customers-service:8081
+
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name customers-service --query "taskArns[0]" --output text) \
+  --container spring-petclinic-customers-service  \
+  --interactive --command "/usr/bin/curl http://config-server:8888"
+
+```
+
+API gatewayからcustomersへの接続
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name api-gateway --query "taskArns[0]" --output text) \
+  --container spring-petclinic-api-gateway  \
+  --interactive --command "/usr/bin/curl http://customers-service:8081/owners"
+
+```
+
+Bash
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name customers-service --query "taskArns[0]" --output text) \
+  --container spring-petclinic-customers-service  \
+  --interactive --command "/bin/bash"
+```
+
+Logs
+```sh
+aws logs get-log-events \
+  --log-group-name /ecs/spring-petclinic-customers-service \
+  --log-stream-name $(aws logs describe-log-streams \
+    --log-group-name /ecs/spring-petclinic-customers-service \
+    --order-by LastEventTime --descending \
+    --query "logStreams[0].logStreamName" --output text) \
+  --query "events[*].message"
+```
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name customers-service --query "taskArns[0]" --output text) \
+  --container spring-petclinic-customers-service  \
+  --interactive --command "/usr/bin/curl -s localhost:8081/actuator/health"
+
+curl -s localhost:8081/actuator/health | python3 -m json.tool
+
+curl http://localhost:8081/owners
+
+強制デプロイ
+```sh
+aws ecs update-service --cluster petclinic --service customers-service --force-new-deployment
+```
 
 
 ## ,vets,visits
