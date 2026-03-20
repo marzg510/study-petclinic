@@ -3,10 +3,10 @@ resource "aws_security_group" "api_gateway" {
   vpc_id = data.aws_vpc.default.id
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port       = 8080
+    to_port         = 8080
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
   }
 
   egress {
@@ -44,6 +44,10 @@ resource "aws_ecs_task_definition" "api_gateway" {
         {
           name  = "SPRING_PROFILES_ACTIVE"
           value = "docker"
+        },
+        {
+          name  = "SERVER_PORT"
+          value = "8080"
         }
       ]
       logConfiguration = {
@@ -62,14 +66,21 @@ resource "aws_ecs_service" "api_gateway" {
   name                   = "api-gateway"
   cluster                = aws_ecs_cluster.main.arn
   task_definition        = aws_ecs_task_definition.api_gateway.arn
-  desired_count          = 1
-  launch_type            = "FARGATE"
-  enable_execute_command = true
+  desired_count                      = 1
+  launch_type                        = "FARGATE"
+  enable_execute_command             = true
+  health_check_grace_period_seconds  = 120
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
     security_groups  = [aws_security_group.api_gateway.id]
     assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api_gateway.arn
+    container_name   = "spring-petclinic-api-gateway"
+    container_port   = 8080
   }
 
   service_connect_configuration {

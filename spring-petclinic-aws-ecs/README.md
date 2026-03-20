@@ -244,8 +244,62 @@ $ aws xray get-trace-summaries   --start-time $(date -d '5 minutes ago' +%s)   -
 
 petclinicはzipkin形式で出力しているのでそれをOTEL Collectorが読めるようにしてあげる必要があった。
 
-## Scale out api-gateway
+CloudWatch → (APM内)トレースマップ
 
+## Auto Scale out api-gateway
+
+### CPU/memoryベース
+
+autoscaling.tf
+ECS → サービス → 自動スケーリング
+
+Public IP
+```sh
+API_GW_PUBLIC_IP=$( \
+aws ec2 describe-network-interfaces \
+  --network-interface-ids $(aws ecs describe-tasks --cluster petclinic \
+    --tasks $(aws ecs list-tasks --cluster petclinic --service-name api-gateway --query "taskArns[0]" --output text) \
+  --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+  --output text) \
+  --query 'NetworkInterfaces[0].Association.PublicIp' --output text \
+)
+
+```
+
+Hey
+```sh
+sudo apt install hey
+```
+
+```sh
+hey -n 10000 -c 100 -m GET http://${API_GW_PUBLIC_IP}:8080/api/customer/owners
+```
+
+CloudWatch → メトリクス → ECS → ClusterName, ServiceName → DesiredTaskCount / RunningTaskCount
+
+※Public IPはタスクごとに振られるので、最初のIPだけに負荷をかけても期待の状態にならない
+ので、やはりALBを立てる
+
+alb.tf
+
+ALBへの接続確認
+```sh
+curl http://$(terraform output -raw alb_dns_name)
+```
+
+ALBへのhey
+```sh
+hey -z 3m -c 60 -m GET http://$(terraform output -raw alb_dns_name)/api/customer/owners
+hey -z 5m -c 100 -m GET http://$(terraform output -raw alb_dns_name)/
+hey -z 10m -c 120 -m GET http://$(terraform output -raw alb_dns_name)/
+
+```
+
+![alt text](image_scaling.png)
+![alt text](image_scaling120.png)
+![alt text](image_requests120.png)
+
+### リクエスト数ベース（ALB使用）
 
 ## 強制終了後の復帰確認
 
