@@ -45,6 +45,10 @@ spring:
   config:
     activate:
       on-profile: docker
+  autoconfigure:
+    exclude:
+      - org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration
+      - org.springframework.cloud.netflix.eureka.EurekaDiscoveryClientConfiguration
 
 eureka:
   client:
