@@ -176,30 +176,8 @@ kubectl rollout restart deployment prometheus-server -n petclinic
 ## Pet Clinic Microservice on ECS
 
 主な変更点：
-- サービスディスカバリ eureka -> AWSではECS
-- Spring API Gateway -> ※AWSではAPI Gateway
-- config-serverの参照先リポジトリ 公式 -> ローカルリポジトリ
-
-
-aws ecs execute-command \
-  --cluster config-server \
-  --task arn:aws:ecs:ap-northeast-1:${AWS_ACCOUNT_ID}$:task/config-server/fdc0eb00716d4de1a2f19187651aa888 \
-  --container config-server \
-  --command "/bin/sh" \
-  --interactive
-
-
-  ① ECS Service で Execute Command を有効化
-マネジメントコンソール
-ECS → Clusters
-config-server クラスタ
-Services → config-server
-Update
-✅ Enable execute command を ON
-Update service
-⚠️ この時点ではまだダメ（重要）
-
-② Task を「必ず再起動」する
-既存 Task は Exec 非対応のままです。
-
-簡単な方法
+- サービスディスカバリ eureka -> ECS Service Connect
+- Spring API Gateway -> Frontendを残す。ALBにする
+- DB H2 -> Aurora MySQL Serverless v2にする
+- Tracing Server -> X-Ray(OTEL)へ
+- 
