@@ -42,11 +42,23 @@ resource "aws_ecs_task_definition" "customers_service" {
       environment = [
         {
           name  = "SPRING_PROFILES_ACTIVE"
-          value = "docker"
+          value = "docker,mysql"
         },
         {
           name  = "SERVER_PORT"
           value = "8081"
+        },
+        {
+          name  = "DB_HOST"
+          value = aws_rds_cluster.petclinic.endpoint
+        },
+        {
+          name  = "DB_USERNAME"
+          value = var.db_username
+        },
+        {
+          name  = "DB_PASSWORD"
+          value = var.db_password
         }
       ]
       logConfiguration = {

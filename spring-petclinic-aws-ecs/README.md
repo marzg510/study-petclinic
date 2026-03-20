@@ -134,6 +134,8 @@ aws logs get-log-events \
     --query "logStreams[0].logStreamName" --output text) \
   --query "events[*].message"
 ```
+
+```sh
 aws ecs execute-command --cluster petclinic \
   --task $(aws ecs list-tasks --cluster petclinic --service-name customers-service --query "taskArns[0]" --output text) \
   --container spring-petclinic-customers-service  \
@@ -142,12 +144,51 @@ aws ecs execute-command --cluster petclinic \
 curl -s localhost:8081/actuator/health | python3 -m json.tool
 
 curl http://localhost:8081/owners
+```
 
 強制デプロイ
 ```sh
 aws ecs update-service --cluster petclinic --service customers-service --force-new-deployment
 ```
 
+## Mysql化
+
+Aurora Serverless v2を使ってみる
+
+使えるバージョン
+
+```sh
+aws rds describe-db-engine-versions \
+  --engine aurora-mysql \
+  --query "DBEngineVersions[*].EngineVersion" \
+  --output text | tr '\t' '\n' | grep "^8.0"
+8.0.mysql_aurora.3.04.0
+8.0.mysql_aurora.3.04.1
+8.0.mysql_aurora.3.04.2
+8.0.mysql_aurora.3.04.3
+8.0.mysql_aurora.3.04.4
+8.0.mysql_aurora.3.04.6
+8.0.mysql_aurora.3.08.0
+8.0.mysql_aurora.3.08.1
+8.0.mysql_aurora.3.08.2
+8.0.mysql_aurora.3.09.0
+8.0.mysql_aurora.3.10.0
+8.0.mysql_aurora.3.10.1
+8.0.mysql_aurora.3.10.2
+8.0.mysql_aurora.3.10.3
+8.0.mysql_aurora.3.11.1
+8.0.mysql_aurora.3.12.0
+```
+
+cloud shellから確認
+```sh
+mysql -h petclinic.cluster-c5lp7tfbe9g1.ap-northeast-1.rds.amazonaws.com -P 3306 --ssl-ca /certs/global-bundle.pem --ssl-verify-server-cert -u petclinic -p
+```
+画面でデータを入れてから以下で確認
+```sql
+use petclinic;
+select * from owners;
+```
 
 ## ,vets,visits
 
