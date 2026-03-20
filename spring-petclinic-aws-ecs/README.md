@@ -295,15 +295,79 @@ hey -z 10m -c 120 -m GET http://$(terraform output -raw alb_dns_name)/
 
 ```
 
+-c 120
+```
+Summary:
+  Total:        600.2993 secs
+  Slowest:      6.0865 secs
+  Fastest:      0.0063 secs
+  Average:      0.2890 secs
+  Requests/sec: 415.1512
+  
+  Total data:   896426355 bytes
+  Size/request: 3597 bytes
+
+Response time histogram:
+  0.006 [1]     |
+  0.614 [235255]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  1.222 [11859] |■■
+  1.830 [1520]  |
+  2.438 [357]   |
+  3.046 [127]   |
+  3.654 [92]    |
+  4.262 [3]     |
+  4.870 [0]     |
+  5.479 [0]     |
+  6.087 [1]     |
+
+
+Latency distribution:
+  10% in 0.0910 secs
+  25% in 0.1904 secs
+  50% in 0.2211 secs
+  75% in 0.3863 secs
+  90% in 0.5029 secs
+  95% in 0.6851 secs
+  99% in 1.1756 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0000 secs, 0.0063 secs, 6.0865 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.1877 secs
+  req write:    0.0000 secs, 0.0000 secs, 0.0031 secs
+  resp wait:    0.2871 secs, 0.0062 secs, 6.0863 secs
+  resp read:    0.0018 secs, 0.0000 secs, 0.5463 secs
+
+Status code distribution:
+  [200] 249215 responses
+```
 ![alt text](image_scaling.png)
 ![alt text](image_scaling120.png)
 ![alt text](image_requests120.png)
 
 ### リクエスト数ベース（ALB使用）
 
+
+項目	変更前（CPU）	変更後（リクエスト数）
+ポリシータイプ	StepScaling	TargetTracking
+メトリクス	CPUUtilization	ALBRequestCountPerTarget
+閾値	CPU 70%	タスクあたり100 req/分
+CloudWatchアラーム	手動設定が必要	自動作成される
+
+
+```sh
+# 約150 req/分 = 2.5 req/sec × 60
+hey -z 10m -c 5 -m GET http://$(terraform output -raw alb_dns_name)/
+```
+
+
 ## 強制終了後の復帰確認
 
-
+```
+# タスクARNを取得して停止
+aws ecs stop-task --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name api-gateway \
+    --query 'taskArns[0]' --output text)
+```
 
 # ここから下は古い！！
 
