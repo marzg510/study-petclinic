@@ -44,6 +44,21 @@ management:
 spring:
   config:
     activate:
+      on-profile: mysql
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/petclinic?allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USERNAME:petclinic}
+    password: ${DB_PASSWORD:petclinic}
+  sql:
+    init:
+      schema-locations: classpath*:db/mysql/schema.sql
+      data-locations: classpath*:db/mysql/data.sql
+      mode: ALWAYS
+
+---
+spring:
+  config:
+    activate:
       on-profile: docker
   autoconfigure:
     exclude:
