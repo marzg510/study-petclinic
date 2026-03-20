@@ -346,7 +346,6 @@ Status code distribution:
 
 ### リクエスト数ベース（ALB使用）
 
-
 項目	変更前（CPU）	変更後（リクエスト数）
 ポリシータイプ	StepScaling	TargetTracking
 メトリクス	CPUUtilization	ALBRequestCountPerTarget
@@ -364,6 +363,24 @@ hey -z 10m -c 5 -m GET http://$(terraform output -raw alb_dns_name)/
 aws ecs update-service --cluster petclinic --service api-gateway --desired-count 1
 ```
 
+### バックエンド（customers-service）のスケーリング
+
+autoscaling.tf
+
+```sh
+hey -z 10m -c 60 -m GET http://$(terraform output -raw alb_dns_name)/api/customer/owners
+hey -z 10m -c 40 -m GET http://$(terraform output -raw alb_dns_name)/api/customer/owners
+```
+
+強制スケールイン
+```sh
+aws ecs update-service --cluster petclinic --service customers-service --desired-count 1
+aws ecs update-service --cluster petclinic --service api-gateway --desired-count 1
+```
+タスク数
+```sh
+aws ecs describe-services --cluster petclinic --services customers-service   --query 'services[0].{desired:desiredCount,running:runningCount}'
+```
 ## 強制終了後の復帰確認
 
 ```sh

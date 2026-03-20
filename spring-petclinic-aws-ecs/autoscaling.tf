@@ -8,22 +8,67 @@ resource "aws_appautoscaling_target" "api_gateway" {
 
 # リクエスト数ベースのスケーリング（TargetTracking）
 # タスクあたり100 req/分を超えたらスケールアウト
-resource "aws_appautoscaling_policy" "api_gateway_request_count" {
-  name               = "api-gateway-request-count"
+#
+# resource "aws_appautoscaling_policy" "api_gateway_request_count" {
+#   name               = "api-gateway-request-count"
+#   policy_type        = "TargetTrackingScaling"
+#   resource_id        = aws_appautoscaling_target.api_gateway.resource_id
+#   scalable_dimension = aws_appautoscaling_target.api_gateway.scalable_dimension
+#   service_namespace  = aws_appautoscaling_target.api_gateway.service_namespace
+#
+#   target_tracking_scaling_policy_configuration {
+#     target_value       = 100
+#     scale_in_cooldown  = 120
+#     scale_out_cooldown = 60
+#
+#     predefined_metric_specification {
+#       predefined_metric_type = "ALBRequestCountPerTarget"
+#       resource_label         = "${aws_lb.petclinic.arn_suffix}/${aws_lb_target_group.api_gateway.arn_suffix}"
+#     }
+#   }
+# }
+
+# api-gatewayのCPUベーススケーリング（TargetTracking）
+resource "aws_appautoscaling_policy" "api_gateway_cpu" {
+  name               = "api-gateway-cpu"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.api_gateway.resource_id
   scalable_dimension = aws_appautoscaling_target.api_gateway.scalable_dimension
   service_namespace  = aws_appautoscaling_target.api_gateway.service_namespace
 
   target_tracking_scaling_policy_configuration {
-    target_value       = 100
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70
     scale_in_cooldown  = 120
     scale_out_cooldown = 60
+  }
+}
 
+# customers-serviceのCPUベーススケーリング（TargetTracking）
+resource "aws_appautoscaling_target" "customers_service" {
+  max_capacity       = 3
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.customers_service.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "customers_service_cpu" {
+  name               = "customers-service-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.customers_service.resource_id
+  scalable_dimension = aws_appautoscaling_target.customers_service.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.customers_service.service_namespace
+
+  target_tracking_scaling_policy_configuration {
     predefined_metric_specification {
-      predefined_metric_type = "ALBRequestCountPerTarget"
-      resource_label         = "${aws_lb.petclinic.arn_suffix}/${aws_lb_target_group.api_gateway.arn_suffix}"
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
+    target_value       = 70
+    scale_in_cooldown  = 120
+    scale_out_cooldown = 60
   }
 }
 
