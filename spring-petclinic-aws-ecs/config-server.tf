@@ -1,17 +1,3 @@
-resource "aws_service_discovery_service" "config_server" {
-  name = "config-server"
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.petclinic.id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-  }
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-}
-
 resource "aws_security_group" "config_server" {
   name   = "config-server-sg"
   vpc_id = data.aws_vpc.default.id
@@ -43,6 +29,7 @@ resource "aws_ecs_task_definition" "config_server" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
@@ -50,7 +37,7 @@ resource "aws_ecs_task_definition" "config_server" {
       image     = "springcommunity/spring-petclinic-config-server:latest"
       essential = true
       portMappings = [
-        { containerPort = 8888, protocol = "tcp" }
+        { name = "config-server", containerPort = 8888, protocol = "tcp" }
       ]
       logConfiguration = {
         logDriver = "awslogs"
@@ -65,11 +52,12 @@ resource "aws_ecs_task_definition" "config_server" {
 }
 
 resource "aws_ecs_service" "config_server" {
-  name            = "config-server"
-  cluster         = aws_ecs_cluster.main.arn
-  task_definition = aws_ecs_task_definition.config_server.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                   = "config-server"
+  cluster                = aws_ecs_cluster.main.arn
+  task_definition        = aws_ecs_task_definition.config_server.arn
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  enable_execute_command = true
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
@@ -77,7 +65,17 @@ resource "aws_ecs_service" "config_server" {
     assign_public_ip = true
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.config_server.arn
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_http_namespace.petclinic.arn
+
+    service {
+      port_name      = "config-server"
+      discovery_name = "config-server"
+      client_alias {
+        port     = 8888
+        dns_name = "config-server"
+      }
+    }
   }
 }

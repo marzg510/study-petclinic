@@ -55,6 +55,36 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_target_group" "customers_service" {
+  name        = "petclinic-customers-tg"
+  port        = 8081
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/actuator/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    interval            = 30
+  }
+}
+
+resource "aws_lb_listener_rule" "customers_service" {
+  listener_arn = aws_lb_listener.http.arn
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.customers_service.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/customer/*"]
+    }
+  }
+}
+
 output "alb_dns_name" {
   value = aws_lb.petclinic.dns_name
 }
