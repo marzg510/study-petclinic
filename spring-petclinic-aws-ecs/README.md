@@ -30,6 +30,16 @@ tfenv install
 terraform --version
 ```
 
+### Hello World
+
+make main.tf
+
+```sh
+terraform init
+terraform apply
+terraform destroy
+```
+
 ## config-server
 
 config-server.tf
@@ -50,8 +60,6 @@ aws ecs execute-command --cluster petclinic \
 api-gateway.tf
 http://api-gateway:8080
 
-
-
 config-serverへの接続テスト
 ```sh
 aws ecs execute-command --cluster petclinic \
@@ -62,14 +70,19 @@ aws ecs execute-command --cluster petclinic \
 ```
 ※AWS Consoleから、サービスー＞タスクでコンテナへ辿り　Cloud Shellから接続でもOK
 
-### Hello World
 
-make main.tf
+## customers-service
 
-```sh
-terraform init
-terraform apply
-```
+
+## ,vets,visits
+
+
+
+
+# ここから下は古い！！
+
+## api-gateway
+
 
 ## Cluster
 

@@ -41,32 +41,8 @@ resource "aws_ecs_task_definition" "api_gateway" {
       ]
       environment = [
         {
-          name  = "SPRING_CONFIG_IMPORT"
-          value = "configserver:http://config-server:8888"
-        },
-        {
-          name  = "SPRING_CLOUD_CONFIG_URI"
-          value = "http://config-server:8888"
-        },
-        {
           name  = "SPRING_PROFILES_ACTIVE"
           value = "ecs"
-        },
-        {
-          name  = "EUREKA_CLIENT_ENABLED"
-          value = "false"
-        },
-        {
-          name  = "EUREKA_CLIENT_REGISTER_WITH_EUREKA"
-          value = "false"
-        },
-        {
-          name  = "EUREKA_CLIENT_FETCH_REGISTRY"
-          value = "false"
-        },
-        {
-          name  = "SPRING_CLOUD_DISCOVERY_ENABLED"
-          value = "false"
         }
       ]
       logConfiguration = {
