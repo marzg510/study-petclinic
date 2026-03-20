@@ -195,14 +195,6 @@ select * from owners;
 vets-service.tf
 http://customers-service:8081
 
-```sh
-aws ecs execute-command --cluster petclinic \
-  --task $(aws ecs list-tasks --cluster petclinic --service-name customers-service --query "taskArns[0]" --output text) \
-  --container spring-petclinic-customers-service  \
-  --interactive --command "/usr/bin/curl http://config-server:8888"
-
-```
-
 API gatewayからvetsへの接続
 ```sh
 aws ecs execute-command --cluster petclinic \
