@@ -390,3 +390,7 @@ aws ecs stop-task --cluster petclinic \
     --query 'taskArns[0]' --output text)
 ```
 
+RDSイベントログ
+```sh
+aws rds describe-events   --duration 60   --query 'Events[?contains(SourceIdentifier, `petclinic`)].{time:Date,msg:Message}'   --output table
+```
