@@ -30,6 +30,38 @@ tfenv install
 terraform --version
 ```
 
+## config-server
+
+config-server.tf
+http://config-server:8888
+
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name config-server --query "taskArns[0]" --output text) \
+  --container spring-petclinic-config-server  \
+  --interactive --command "/usr/bin/curl http://api-gateway:8080"
+
+```
+
+## api-gateway
+
+初期ホームの画面を持っているので起動する必要がある
+
+api-gateway.tf
+http://api-gateway:8080
+
+
+
+config-serverへの接続テスト
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name api-gateway --query "taskArns[0]" --output text) \
+  --container spring-petclinic-api-gateway  \
+  --interactive --command "/usr/bin/curl http://config-server:8888"
+
+```
+※AWS Consoleから、サービスー＞タスクでコンテナへ辿り　Cloud Shellから接続でもOK
+
 ### Hello World
 
 make main.tf

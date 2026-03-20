@@ -1,26 +1,12 @@
-resource "aws_service_discovery_service" "api_gateway" {
-  name = "api-gateway"
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.petclinic.id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-  }
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-}
-
 resource "aws_security_group" "api_gateway" {
   name   = "api-gateway-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
-    from_port       = 8080
-    to_port         = 8080
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -43,6 +29,7 @@ resource "aws_ecs_task_definition" "api_gateway" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   container_definitions = jsonencode([
     {
@@ -50,16 +37,16 @@ resource "aws_ecs_task_definition" "api_gateway" {
       image     = "springcommunity/spring-petclinic-api-gateway:latest"
       essential = true
       portMappings = [
-        { containerPort = 8080, protocol = "tcp" }
+        { name = "api-gateway", containerPort = 8080, protocol = "tcp" }
       ]
       environment = [
         {
           name  = "SPRING_CONFIG_IMPORT"
-          value = "configserver:http://config-server.petclinic.local:8888"
+          value = "configserver:http://config-server:8888"
         },
         {
           name  = "SPRING_CLOUD_CONFIG_URI"
-          value = "http://config-server.petclinic.local:8888"
+          value = "http://config-server:8888"
         },
         {
           name  = "SPRING_PROFILES_ACTIVE"
@@ -95,11 +82,12 @@ resource "aws_ecs_task_definition" "api_gateway" {
 }
 
 resource "aws_ecs_service" "api_gateway" {
-  name            = "api-gateway"
-  cluster         = aws_ecs_cluster.main.arn
-  task_definition = aws_ecs_task_definition.api_gateway.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name                   = "api-gateway"
+  cluster                = aws_ecs_cluster.main.arn
+  task_definition        = aws_ecs_task_definition.api_gateway.arn
+  desired_count          = 1
+  launch_type            = "FARGATE"
+  enable_execute_command = true
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
@@ -107,15 +95,17 @@ resource "aws_ecs_service" "api_gateway" {
     assign_public_ip = true
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.api_gateway.arn
-  }
+  service_connect_configuration {
+    enabled   = true
+    namespace = aws_service_discovery_http_namespace.petclinic.arn
 
-  load_balancer {
-    target_group_arn = aws_lb_target_group.frontend.arn
-    container_name   = "spring-petclinic-api-gateway"
-    container_port   = 8080
+    service {
+      port_name      = "api-gateway"
+      discovery_name = "api-gateway"
+      client_alias {
+        port     = 8080
+        dns_name = "api-gateway"
+      }
+    }
   }
-
-  depends_on = [aws_lb_listener.http]
 }
