@@ -193,7 +193,7 @@ select * from owners;
 ## vets
 
 vets-service.tf
-http://customers-service:8081
+http://vets-service:8083
 
 API gatewayからvetsへの接続
 ```sh
@@ -208,9 +208,29 @@ aws ecs execute-command --cluster petclinic \
 
 ## visits
 
+visits-service.tf
+http://visits-service:8082
 
+API gatewayからvisitsへの接続
+```sh
+aws ecs execute-command --cluster petclinic \
+  --task $(aws ecs list-tasks --cluster petclinic --service-name api-gateway --query "taskArns[0]" --output text) \
+  --container spring-petclinic-api-gateway  \
+  --interactive --command "/usr/bin/curl http://visits-service:8082/visits"
+
+```
+
+
+## Tracing Server
+
+サービスが動き出してからにする
+後回し
 
 ## Scale out api-gateway
+
+
+## 強制終了後の復帰確認
+
 
 
 # ここから下は古い！！
