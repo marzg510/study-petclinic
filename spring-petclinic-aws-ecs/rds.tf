@@ -41,6 +41,7 @@ resource "aws_rds_cluster" "petclinic" {
 }
 
 resource "aws_rds_cluster_instance" "petclinic" {
+  identifier         = "petclinic-instance-1"
   cluster_identifier = aws_rds_cluster.petclinic.id
   instance_class     = "db.serverless"
   engine             = aws_rds_cluster.petclinic.engine
