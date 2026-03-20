@@ -1,0 +1,12 @@
+vets:
+  cache:
+    ttl: 60
+    heap-size: 100
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+server:
+  port: 8083

@@ -1,0 +1,34 @@
+zuul:
+  prefix: /api
+  ignoredServices: '*'
+  routes:
+    vets-service: /vet/**
+    visits-service: /visit/**
+    customers-service: /customer/**
+    api-gateway: /gateway/**
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,text/css,application/javascript
+    min-response-size: 2048
+
+spring.messages.basename: messages/messages
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            customers-service:
+              - uri: http://customers-service:8081
+            vets-service:
+              - uri: http://vets-service:8083
+            visits-service:
+              - uri: http://visits-service:8082
