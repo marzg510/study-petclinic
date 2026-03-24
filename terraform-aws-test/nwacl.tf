@@ -9,11 +9,11 @@ resource "aws_network_acl" "public" {
 resource "aws_network_acl_rule" "allow_http_in" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 100
-  protocol       = "6"               # TCP
+  protocol       = "tcp"               # TCP
   rule_action    = "allow"
   egress         = false
-  # cidr_block     = "163.116.208.22/32"
-  cidr_block     = "0.0.0.0/0"
+  cidr_block     = "163.116.208.22/32"
+  # cidr_block     = "0.0.0.0/0"
   from_port      = 80
   to_port        = 80
 }
@@ -21,7 +21,7 @@ resource "aws_network_acl_rule" "allow_http_in" {
 resource "aws_network_acl_rule" "allow_ephemeral_in" {
   network_acl_id = aws_network_acl.public.id
   rule_number    = 110
-  protocol       = "6"
+  protocol       = "tcp"
   rule_action    = "allow"
   egress         = false
   cidr_block     = "0.0.0.0/0"
