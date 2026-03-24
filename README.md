@@ -177,7 +177,13 @@ kubectl rollout restart deployment prometheus-server -n petclinic
 
 主な変更点：
 - サービスディスカバリ eureka -> ECS Service Connect
+   ※API Gateway → ALB → ECSは以下のような場合に有用
+     - 認証（Cognito / IAM）
+     - レート制限
+     - WAF連携
+     - ステージ管理
+     この構成ではサービスディスカバリを担うのはALB。
 - Spring API Gateway -> Frontendを残す。ALBにする
 - DB H2 -> Aurora MySQL Serverless v2にする
 - Tracing Server -> X-Ray(OTEL)へ
-- 
+-
